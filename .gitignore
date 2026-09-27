@@ -1,0 +1,29 @@
+# Java
+*.class
+
+# Compilation
+bin/
+classes/
+target/
+out/
+
+# VS Code
+.vscode/
+
+# IntelliJ
+.idea/
+*.iml
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# Windows
+Thumbs.db
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
