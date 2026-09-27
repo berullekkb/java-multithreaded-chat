@@ -8,7 +8,7 @@ import java.net.Socket;
 
 public class ClientHandler extends Thread {
 
-    private Socket socket;
+    private final Socket socket;
 
     private BufferedReader entree;
     private PrintWriter sortie;
@@ -29,10 +29,6 @@ public class ClientHandler extends Thread {
 
         try {
 
-            /*
-             * Flux permettant de recevoir
-             * les messages venant du client.
-             */
             entree =
                     new BufferedReader(
                             new InputStreamReader(
@@ -40,11 +36,6 @@ public class ClientHandler extends Thread {
                             )
                     );
 
-
-            /*
-             * Flux permettant d'envoyer
-             * des messages au client.
-             */
             sortie =
                     new PrintWriter(
                             socket.getOutputStream(),
@@ -53,16 +44,19 @@ public class ClientHandler extends Thread {
 
 
             /*
-             * Première étape :
-             * récupérer un pseudonyme unique.
+             * Le client doit d'abord avoir
+             * un pseudonyme valide.
              */
             gererPseudo();
 
 
             /*
-             * Une fois le pseudo accepté,
-             * on annonce l'arrivée.
+             * Seulement maintenant,
+             * il devient un client actif du chat.
              */
+            Serveur.ajouterClient(this);
+
+
             System.out.println(
                     pseudo + " est connecté."
             );
@@ -77,17 +71,6 @@ public class ClientHandler extends Thread {
             String message;
 
 
-            /*
-             * IMPORTANT :
-             *
-             * readLine() est bloquant.
-             *
-             * Ce thread reste ici jusqu'à ce que
-             * CE client envoie quelque chose.
-             *
-             * Mais les autres clients ont leurs
-             * propres threads.
-             */
             while (
                     (message = entree.readLine())
                     != null
@@ -100,10 +83,6 @@ public class ClientHandler extends Thread {
                 );
 
 
-                /*
-                 * Si le client écrit exit,
-                 * on arrête sa conversation.
-                 */
                 if (
                         message.equalsIgnoreCase(
                                 "exit"
@@ -114,9 +93,6 @@ public class ClientHandler extends Thread {
                 }
 
 
-                /*
-                 * Diffusion du message à tous.
-                 */
                 Serveur.broadcast(
                         pseudo
                         + " a dit : "
@@ -127,11 +103,6 @@ public class ClientHandler extends Thread {
 
         } catch (IOException e) {
 
-            /*
-             * Exemple :
-             * client fermé brutalement,
-             * perte de connexion, etc.
-             */
             System.out.println(
                     "Connexion perdue avec "
                     + (
@@ -143,29 +114,16 @@ public class ClientHandler extends Thread {
 
         } finally {
 
-            /*
-             * IMPORTANT :
-             *
-             * Le nettoyage doit se produire
-             * même s'il y a une exception.
-             */
             deconnecter();
         }
     }
 
 
-    /*
-     * Demande un pseudo jusqu'à obtenir
-     * un pseudo valide et unique.
-     */
     private void gererPseudo()
             throws IOException {
 
         while (true) {
 
-            /*
-             * Le serveur demande un pseudo.
-             */
             sortie.println("PSEUDO");
 
 
@@ -173,10 +131,6 @@ public class ClientHandler extends Thread {
                     entree.readLine();
 
 
-            /*
-             * Si le client disparaît
-             * avant même d'envoyer son pseudo.
-             */
             if (proposition == null) {
 
                 throw new IOException(
@@ -189,9 +143,6 @@ public class ClientHandler extends Thread {
                     proposition.trim();
 
 
-            /*
-             * Pseudo vide interdit.
-             */
             if (proposition.isEmpty()) {
 
                 sortie.println(
@@ -202,10 +153,6 @@ public class ClientHandler extends Thread {
             }
 
 
-            /*
-             * Le serveur est responsable
-             * de vérifier l'unicité.
-             */
             if (
                     Serveur.ajouterPseudo(
                             proposition
@@ -228,27 +175,21 @@ public class ClientHandler extends Thread {
     }
 
 
-    /*
-     * Envoie un message à CE client.
-     */
     public void envoyerMessage(
             String message) {
 
-        if (sortie != null) {
+        if (
+                sortie != null
+                && !sortie.checkError()
+        ) {
 
             sortie.println(message);
         }
     }
 
 
-    /*
-     * Nettoyage du client.
-     */
-    private void deconnecter() {
+    private synchronized void deconnecter() {
 
-        /*
-         * Empêche une double déconnexion.
-         */
         if (deconnecte) {
 
             return;
@@ -287,7 +228,9 @@ public class ClientHandler extends Thread {
 
         } catch (IOException e) {
 
-            // Rien à faire
+            System.out.println(
+                    "Erreur fermeture flux d'entrée."
+            );
         }
 
 
@@ -299,17 +242,16 @@ public class ClientHandler extends Thread {
 
         try {
 
-            if (
-                    socket != null
-                    && !socket.isClosed()
-            ) {
+            if (!socket.isClosed()) {
 
                 socket.close();
             }
 
         } catch (IOException e) {
 
-            // Rien à faire
+            System.out.println(
+                    "Erreur fermeture socket."
+            );
         }
     }
 }

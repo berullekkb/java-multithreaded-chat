@@ -11,11 +11,9 @@ public class Serveur {
 
     private static final int PORT = 5000;
 
-    // Liste de tous les clients actuellement connectés
     private static final CopyOnWriteArrayList<ClientHandler> clients =
             new CopyOnWriteArrayList<>();
 
-    // Ensemble des pseudonymes utilisés
     private static final Set<String> pseudos =
             ConcurrentHashMap.newKeySet();
 
@@ -33,14 +31,6 @@ public class Serveur {
 
             while (true) {
 
-                /*
-                 * IMPORTANT :
-                 *
-                 * accept() est bloquant.
-                 *
-                 * Le serveur reste ici tant qu'un client
-                 * ne demande pas une connexion.
-                 */
                 Socket socketClient = serveur.accept();
 
                 System.out.println(
@@ -48,16 +38,17 @@ public class Serveur {
                         + socketClient.getInetAddress()
                 );
 
-
-                /*
-                 * Création d'un thread spécialement
-                 * pour ce client.
-                 */
                 ClientHandler client =
                         new ClientHandler(socketClient);
 
-                clients.add(client);
-
+                /*
+                 * IMPORTANT :
+                 *
+                 * On ne met PAS encore le client
+                 * dans la liste.
+                 *
+                 * Il doit d'abord choisir un pseudo valide.
+                 */
                 client.start();
             }
 
@@ -71,9 +62,18 @@ public class Serveur {
     }
 
 
-    /*
-     * Diffuse un message à tous les clients connectés.
-     */
+    public static void ajouterClient(ClientHandler client) {
+
+        clients.add(client);
+    }
+
+
+    public static void supprimerClient(ClientHandler client) {
+
+        clients.remove(client);
+    }
+
+
     public static void broadcast(String message) {
 
         for (ClientHandler client : clients) {
@@ -83,35 +83,17 @@ public class Serveur {
     }
 
 
-    /*
-     * Essaie d'enregistrer un pseudonyme.
-     *
-     * add() retourne false si le pseudo existe déjà.
-     */
     public static boolean ajouterPseudo(String pseudo) {
 
         return pseudos.add(pseudo);
     }
 
 
-    /*
-     * Supprime un pseudonyme lorsqu'un client quitte.
-     */
     public static void supprimerPseudo(String pseudo) {
 
         if (pseudo != null) {
 
             pseudos.remove(pseudo);
         }
-    }
-
-
-    /*
-     * Supprime un client de la liste.
-     */
-    public static void supprimerClient(
-            ClientHandler client) {
-
-        clients.remove(client);
     }
 }

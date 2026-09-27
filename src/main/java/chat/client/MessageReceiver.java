@@ -6,9 +6,8 @@ import java.net.Socket;
 
 public class MessageReceiver extends Thread {
 
-    private Socket socket;
-
-    private BufferedReader entree;
+    private final Socket socket;
+    private final BufferedReader entree;
 
 
     public MessageReceiver(
@@ -16,7 +15,6 @@ public class MessageReceiver extends Thread {
             BufferedReader entree) {
 
         this.socket = socket;
-
         this.entree = entree;
     }
 

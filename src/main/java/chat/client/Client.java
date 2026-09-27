@@ -18,24 +18,19 @@ public class Client {
 
     public static void main(String[] args) {
 
-        try {
+        try (
+                Socket socket =
+                        new Socket(HOST, PORT);
 
-            Socket socket =
-                    new Socket(
-                            HOST,
-                            PORT
-                    );
-
+                Scanner clavier =
+                        new Scanner(System.in)
+        ) {
 
             System.out.println(
                     "Connexion au serveur réussie."
             );
 
 
-            /*
-             * Création des flux AVANT
-             * de lancer les threads.
-             */
             BufferedReader entree =
                     new BufferedReader(
                             new InputStreamReader(
@@ -51,12 +46,12 @@ public class Client {
                     );
 
 
-            Scanner clavier =
-                    new Scanner(System.in);
-
-
             /*
-             * Gestion du pseudonyme.
+             * Le pseudo est traité AVANT
+             * le lancement des threads.
+             *
+             * Ainsi un seul code lit le socket
+             * pendant la phase de connexion.
              */
             choisirPseudo(
                     entree,
@@ -65,39 +60,45 @@ public class Client {
             );
 
 
-            /*
-             * Une fois connecté,
-             * on lance les deux threads.
-             */
-            ReceptionThread reception =
-                    new ReceptionThread(
+            MessageReceiver reception =
+                    new MessageReceiver(
                             socket,
                             entree
                     );
 
 
-            EnvoiThread envoi =
-                    new EnvoiThread(
-                            socket,
+            MessageSender envoi =
+                    new MessageSender(
                             sortie,
                             clavier
                     );
 
 
             reception.start();
-
             envoi.start();
 
 
-            reception.join();
-
+            /*
+             * On attend d'abord que l'utilisateur
+             * termine l'envoi.
+             */
             envoi.join();
+
+
+            /*
+             * Après "exit", le serveur ferme
+             * normalement le socket.
+             *
+             * Le thread de réception se terminera alors.
+             */
+            reception.join();
 
 
         } catch (IOException e) {
 
             System.out.println(
-                    "Connexion au serveur impossible."
+                    "Connexion au serveur impossible : "
+                    + e.getMessage()
             );
 
 
@@ -121,9 +122,7 @@ public class Client {
                     entree.readLine();
 
 
-            if (
-                    demande == null
-            ) {
+            if (demande == null) {
 
                 throw new IOException(
                         "Serveur déconnecté."
@@ -131,30 +130,37 @@ public class Client {
             }
 
 
-            if (
-                    demande.equals("PSEUDO")
-            ) {
+            if (!demande.equals("PSEUDO")) {
 
-                System.out.print(
-                        "Entrez votre pseudo : "
-                );
-
-
-                String pseudo =
-                        clavier.nextLine();
-
-
-                sortie.println(pseudo);
+                continue;
             }
+
+
+            System.out.print(
+                    "Entrez votre pseudo : "
+            );
+
+
+            String pseudo =
+                    clavier.nextLine();
+
+
+            sortie.println(pseudo);
 
 
             String reponse =
                     entree.readLine();
 
 
-            if (
-                    reponse.equals("OK")
-            ) {
+            if (reponse == null) {
+
+                throw new IOException(
+                        "Serveur déconnecté."
+                );
+            }
+
+
+            if (reponse.equals("OK")) {
 
                 System.out.println(
                         "Pseudo accepté."

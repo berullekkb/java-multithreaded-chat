@@ -1,27 +1,19 @@
 package chat.client;
 
 import java.io.PrintWriter;
-import java.net.Socket;
 import java.util.Scanner;
 
 public class MessageSender extends Thread {
 
-    private Socket socket;
-
-    private PrintWriter sortie;
-
-    private Scanner clavier;
+    private final PrintWriter sortie;
+    private final Scanner clavier;
 
 
     public MessageSender(
-            Socket socket,
             PrintWriter sortie,
             Scanner clavier) {
 
-        this.socket = socket;
-
         this.sortie = sortie;
-
         this.clavier = clavier;
     }
 
@@ -33,24 +25,13 @@ public class MessageSender extends Thread {
 
             while (true) {
 
-                /*
-                 * Attend que l'utilisateur
-                 * saisisse quelque chose.
-                 */
                 String message =
                         clavier.nextLine();
 
 
-                /*
-                 * Envoi au serveur.
-                 */
                 sortie.println(message);
 
 
-                /*
-                 * Si l'utilisateur écrit exit,
-                 * on arrête ce thread.
-                 */
                 if (
                         message.equalsIgnoreCase(
                                 "exit"
